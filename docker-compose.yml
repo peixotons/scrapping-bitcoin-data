@@ -25,14 +25,6 @@ services:
       start_period: 40s
     networks:
       - bitcoin-network
-    deploy:
-      resources:
-        limits:
-          memory: 400M  # Limite para t2.micro
-          cpus: '0.5'
-        reservations:
-          memory: 200M
-          cpus: '0.25'
 
   # Nginx Reverse Proxy
   nginx:

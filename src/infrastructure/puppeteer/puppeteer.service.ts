@@ -39,29 +39,87 @@ interface BitcoinDataWithMayer extends BitcoinData {
 
 @Injectable()
 export class PuppeteerService {
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutos
+
   constructor(private readonly httpService: HttpService) { }
 
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
     console.log('🚀 Iniciando captura de dados do Bitcoin...');
 
+    // Verificar cache
+    const cacheKey = 'bitcoin-data';
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      console.log('📦 Retornando dados do cache (10min TTL)');
+      return cached.data;
+    }
+
     const browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
+        // Básicos para Docker
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+
+        // Otimizações para t2.micro (low memory/CPU)
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-background-networking',
+        '--disable-sync',
+        '--disable-default-apps',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-preconnect-resource-hints',
+        '--disable-loading-animation',
+        '--disable-web-security',
+        '--aggressive-cache-discard',
+        '--memory-pressure-off',
+
+        // Limites de recursos
+        '--max_old_space_size=256',
+        '--max-heap-size=256',
+        '--single-process', // CRÍTICO para t2.micro
+
+        // Rede otimizada
+        '--disable-features=VizDisplayCompositor',
+        '--disable-blink-features=AutomationControlled',
       ],
     });
 
     try {
       const page = await browser.newPage();
+
+      // Otimizações de página para t2.micro
+      await page.setViewport({ width: 1024, height: 768 });
+      await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+
+      // Desabilitar recursos desnecessários
+      await page.setRequestInterception(true);
+      page.on('request', (request) => {
+        const resourceType = request.resourceType();
+        if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+          request.abort();
+        } else {
+          request.continue();
+        }
+      });
+
+      console.log('📊 Navegando para Yahoo Finance...');
       await page.goto(
         'https://finance.yahoo.com/quote/BTC-USD/history/?guce_referrer=aHR0cHM6Ly9jaGF0Z3B0LmNvbS8&guce_referrer_sig=AQAAAGC1TQxq2tHtAaEFZelG6GyHbXkLr5o71-Ufy2nkU4z3SCZDAjI6THEwud8rlVm3Q-w-xLk0C_R_kG5yLhp0gXpypvMI8ORpvc_Qk8ju3xajj327Vz9wUMHI9Z2DSdEye9TunuCOCk2S2wpMc3j6J11IP8VRLqMCVCwFQEwfRdy2&period1=1514764800&period2=1751289979',
+        { waitUntil: 'domcontentloaded', timeout: 60000 } // Aumentado para t2.micro
       );
+
+      console.log('⏳ Aguardando tabela carregar...');
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
-        timeout: 10000,
+        timeout: 45000, // Aumentado para t2.micro
       });
 
       const bitcoinData = await this.extractTableData(page);
@@ -74,6 +132,11 @@ export class PuppeteerService {
       const filteredData = this.filterDataFrom2020(dataWithIndicators);
 
       this.logResults(filteredData);
+
+      // Salvar no cache
+      this.cache.set(cacheKey, { data: filteredData, timestamp: Date.now() });
+      console.log('💾 Dados salvos no cache');
+
       return filteredData;
     } catch (error) {
       console.error('Erro ao capturar dados:', error);
@@ -118,7 +181,7 @@ export class PuppeteerService {
         await firstValueFrom(
           this.httpService.get(
             'https://api.alternative.me/fng/?limit=0&format=json',
-            { timeout: 10000 },
+            { timeout: 30000 }, // Aumentado para t2.micro
           ),
         );
 
