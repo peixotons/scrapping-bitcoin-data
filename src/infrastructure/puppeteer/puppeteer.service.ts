@@ -42,11 +42,16 @@ export class PuppeteerService {
   constructor(private readonly httpService: HttpService) { }
 
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
+    console.log('🚀 Iniciando captura de dados do Bitcoin...');
+
     const browser = await puppeteer.launch({
-      headless: true, // SEMPRE true em produção
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
       ],
     });
 
