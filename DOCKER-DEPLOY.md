@@ -83,10 +83,10 @@ docker-compose logs nginx
 ### 3.2 Testar API
 ```bash
 # Health check
-curl http://localhost/health
+curl http://localhost/api/v1/bitcoin/health
 
 # Teste do IP público
-curl http://seu-ip-ec2/health
+curl http://seu-ip-ec2/api/v1/bitcoin/health
 
 # Endpoint principal (pode demorar 30-60s na primeira execução)
 curl http://seu-ip-ec2/bitcoin/analysis
