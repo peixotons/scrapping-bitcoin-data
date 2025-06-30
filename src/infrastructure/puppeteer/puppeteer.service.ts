@@ -47,12 +47,6 @@ export class PuppeteerService {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process', // Para ambientes com pouca memória
-        '--disable-gpu'
       ],
     });
 
