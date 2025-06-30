@@ -54,7 +54,6 @@ export class PuppeteerService {
         '--single-process', // Para ambientes com pouca memória
         '--disable-gpu'
       ],
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     });
 
     try {
