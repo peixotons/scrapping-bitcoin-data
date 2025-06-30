@@ -1,0 +1,149 @@
+{
+  "info": {
+    "name": "Bitcoin Market Intelligence API",
+    "description": "Complete Bitcoin analysis with Mayer Multiple & Fear Greed Index since January 2020",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/bitcoin/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "bitcoin", "health"]
+        },
+        "description": "Simple health check to verify API is running"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bitcoin/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bitcoin", "health"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [],
+          "cookie": [],
+          "body": "{\n  \"status\": \"OK\",\n  \"timestamp\": \"2025-01-02T10:30:00.000Z\",\n  \"service\": \"Bitcoin Market Intelligence API\",\n  \"version\": \"1.0.0\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Complete Bitcoin Analysis",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-RapidAPI-Key",
+            "value": "{{rapidapi_key}}",
+            "type": "text",
+            "description": "Your RapidAPI key"
+          },
+          {
+            "key": "X-RapidAPI-Host",
+            "value": "{{rapidapi_host}}",
+            "type": "text",
+            "description": "RapidAPI host header"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/bitcoin/analysis",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "bitcoin", "analysis"]
+        },
+        "description": "Returns complete Bitcoin market analysis including:\n\n- Historical prices since January 1, 2020\n- Mayer Multiple calculations (200-day moving average)\n- Fear & Greed Index sentiment data\n- Combined trading recommendations\n- Current market status and confidence levels\n\nThis endpoint provides professional-grade Bitcoin analysis combining technical indicators with market sentiment for informed trading decisions."
+      },
+      "response": [
+        {
+          "name": "Successful Analysis Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bitcoin/analysis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bitcoin", "analysis"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"success\": true,\n  \"meta\": {\n    \"totalRecords\": 1250,\n    \"dataRange\": \"Jan 02, 2020 to Dec 18, 2025\",\n    \"lastUpdate\": \"2025-01-02T10:30:00.000Z\"\n  },\n  \"data\": [\n    {\n      \"date\": \"Jan 02, 2020\",\n      \"open\": \"7194.89\",\n      \"close\": \"7200.17\",\n      \"movingAverage200\": 7350.25,\n      \"mayerMultiple\": 0.980,\n      \"fearGreedValue\": 45,\n      \"fearGreedClassification\": \"Fear\"\n    },\n    {\n      \"date\": \"Dec 18, 2025\",\n      \"open\": \"107327.82\",\n      \"close\": \"107810.15\",\n      \"movingAverage200\": 45230.67,\n      \"mayerMultiple\": 2.384,\n      \"fearGreedValue\": 66,\n      \"fearGreedClassification\": \"Greed\"\n    }\n  ],\n  \"currentAnalysis\": {\n    \"price\": 107810.15,\n    \"mayerMultiple\": 2.384,\n    \"mayerStatus\": \"Neutral\",\n    \"fearGreedValue\": 66,\n    \"fearGreedStatus\": \"😊 Greed\",\n    \"recommendation\": \"Neutral: Wait for clearer signals\",\n    \"confidenceLevel\": \"Medium\"\n  }\n}"
+        },
+        {
+          "name": "Error Response - No Data",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bitcoin/analysis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bitcoin", "analysis"]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "json",
+          "header": [],
+          "cookie": [],
+          "body": "{\n  \"statusCode\": 204,\n  \"message\": \"No Bitcoin data available\"\n}"
+        },
+        {
+          "name": "Error Response - Server Error",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/bitcoin/analysis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "bitcoin", "analysis"]
+            }
+          },
+          "status": "Internal Server Error",
+          "code": 500,
+          "_postman_previewlanguage": "json",
+          "header": [],
+          "cookie": [],
+          "body": "{\n  \"statusCode\": 500,\n  \"message\": \"Failed to retrieve Bitcoin analysis\"\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://bitcoin-market-intelligence.p.rapidapi.com",
+      "type": "string",
+      "description": "Base URL for production (RapidAPI)"
+    },
+    {
+      "key": "rapidapi_key",
+      "value": "YOUR_RAPIDAPI_KEY_HERE",
+      "type": "string",
+      "description": "Your RapidAPI subscription key"
+    },
+    {
+      "key": "rapidapi_host",
+      "value": "bitcoin-market-intelligence.p.rapidapi.com",
+      "type": "string",
+      "description": "RapidAPI host header"
+    }
+  ]
+} 
