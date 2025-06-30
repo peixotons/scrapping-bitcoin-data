@@ -18,7 +18,7 @@ services:
       - ./logs:/app/logs
       - /dev/shm:/dev/shm  # Compartilha memória compartilhada para Chrome
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => { r.statusCode === 200 ? process.exit(0) : process.exit(1) })"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/bitcoin/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -75,10 +75,6 @@ docker-compose*.yml
 .prettierrc*
 .prettierignore
 
-# TypeScript config
-tsconfig.json
-tsconfig.build.json
-
 # Postman collection
 *.postman_collection.json
 
