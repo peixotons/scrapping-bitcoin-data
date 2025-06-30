@@ -45,6 +45,7 @@ export class PuppeteerService {
   constructor(private readonly httpService: HttpService) { }
 
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
+    const startTime = Date.now();
     console.log('🚀 Iniciando captura de dados do Bitcoin...');
 
     // Verificar cache
@@ -55,81 +56,59 @@ export class PuppeteerService {
       return cached.data;
     }
 
+    console.log('🔧 Iniciando Chrome/Puppeteer...');
     const browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        // Básicos para Docker
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-
-        // Otimizações para t2.micro (low memory/CPU)
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection',
-        '--disable-background-networking',
-        '--disable-sync',
-        '--disable-default-apps',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-preconnect-resource-hints',
-        '--disable-loading-animation',
-        '--disable-web-security',
-        '--aggressive-cache-discard',
-        '--memory-pressure-off',
-
-        // Limites de recursos
-        '--max_old_space_size=256',
-        '--max-heap-size=256',
-        '--single-process', // CRÍTICO para t2.micro
-
-        // Rede otimizada
-        '--disable-features=VizDisplayCompositor',
-        '--disable-blink-features=AutomationControlled',
-      ],
+      protocolTimeout: 240000,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-images', '--disable-css'],
     });
+    console.log('✅ Chrome iniciado com sucesso');
 
     try {
+      console.log('📄 Criando nova página...');
       const page = await browser.newPage();
+      console.log('✅ Nova página criada');
 
-      // Otimizações de página para t2.micro
-      await page.setViewport({ width: 1024, height: 768 });
-      await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-
-      // Desabilitar recursos desnecessários
-      await page.setRequestInterception(true);
-      page.on('request', (request) => {
-        const resourceType = request.resourceType();
-        if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
-          request.abort();
-        } else {
-          request.continue();
-        }
-      });
-
-      console.log('📊 Navegando para Yahoo Finance...');
+      console.log('🌐 Navegando para Yahoo Finance...');
+      const navigationStart = Date.now();
       await page.goto(
         'https://finance.yahoo.com/quote/BTC-USD/history/?guce_referrer=aHR0cHM6Ly9jaGF0Z3B0LmNvbS8&guce_referrer_sig=AQAAAGC1TQxq2tHtAaEFZelG6GyHbXkLr5o71-Ufy2nkU4z3SCZDAjI6THEwud8rlVm3Q-w-xLk0C_R_kG5yLhp0gXpypvMI8ORpvc_Qk8ju3xajj327Vz9wUMHI9Z2DSdEye9TunuCOCk2S2wpMc3j6J11IP8VRLqMCVCwFQEwfRdy2&period1=1514764800&period2=1751289979',
         { waitUntil: 'domcontentloaded', timeout: 60000 } // Aumentado para t2.micro
       );
+      const navigationTime = Date.now() - navigationStart;
+      console.log(`✅ Página carregada em ${navigationTime}ms`);
 
-      console.log('⏳ Aguardando tabela carregar...');
+      console.log('🔍 Procurando tabela de dados históricos...');
+      const selectorStart = Date.now();
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
         timeout: 45000, // Aumentado para t2.micro
       });
+      const selectorTime = Date.now() - selectorStart;
+      console.log(`✅ Tabela encontrada em ${selectorTime}ms`);
 
+      console.log('📊 Extraindo dados da tabela...');
       const bitcoinData = await this.extractTableData(page);
+      console.log(`✅ Extraídos ${bitcoinData.length} registros do Bitcoin`);
+
+      console.log('😱 Buscando dados do Fear & Greed Index...');
       const fearGreedData = await this.fetchFearGreedData();
+      console.log(`✅ Recebidos ${fearGreedData.length} registros do Fear & Greed`);
+
+      console.log('🧮 Calculando Mayer Multiple (média móvel 200 dias)...');
       const dataWithMayer = this.calculateMayerMultiple(bitcoinData);
+      console.log(`✅ Mayer Multiple calculado para ${dataWithMayer.length} registros`);
+
+      console.log('🔗 Combinando dados Bitcoin + Fear & Greed...');
       const dataWithIndicators = this.combineFearGreedData(
         dataWithMayer,
         fearGreedData,
       );
+      console.log(`✅ Dados combinados: ${dataWithIndicators.length} registros`);
+
+      console.log('📅 Filtrando dados de 2020 em diante...');
       const filteredData = this.filterDataFrom2020(dataWithIndicators);
+      console.log(`✅ Dados filtrados: ${filteredData.length} registros finais`);
 
       this.logResults(filteredData);
 
@@ -137,26 +116,35 @@ export class PuppeteerService {
       this.cache.set(cacheKey, { data: filteredData, timestamp: Date.now() });
       console.log('💾 Dados salvos no cache');
 
+      const totalTime = Date.now() - startTime;
+      console.log(`🎉 Processo completo em ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
+
       return filteredData;
     } catch (error) {
-      console.error('Erro ao capturar dados:', error);
+      const totalTime = Date.now() - startTime;
+      console.error(`❌ Erro após ${totalTime}ms:`, error);
       throw new Error('Erro ao capturar dados do Bitcoin');
     } finally {
+      console.log('🔒 Fechando Chrome...');
       if (browser) await browser.close();
+      console.log('✅ Chrome fechado');
     }
   }
 
   private async extractTableData(page: any): Promise<BitcoinData[]> {
-    console.log('Extraindo dados da tabela...');
+    console.log('📋 Executando extração de dados da tabela...');
 
-    return await page.evaluate(() => {
+    const result = await page.evaluate(() => {
       const table = document.querySelector('table.yf-1jecxey.noDl.hideOnPrint');
       if (!table) throw new Error('Tabela não encontrada');
 
       const rows = table.querySelectorAll('tbody tr');
-      const data: BitcoinData[] = [];
+      console.log(`🔢 Encontradas ${rows.length} linhas na tabela`);
 
-      rows.forEach((row) => {
+      const data: any[] = [];
+      let validRows = 0;
+
+      rows.forEach((row, index) => {
         const cells = row.querySelectorAll('td');
         if (cells.length >= 5) {
           const date = cells[0]?.textContent?.trim();
@@ -165,16 +153,22 @@ export class PuppeteerService {
 
           if (date && open && close) {
             data.push({ date, open, close });
+            validRows++;
           }
         }
       });
 
+      console.log(`✅ Processadas ${validRows} linhas válidas de ${rows.length} total`);
       return data;
     });
+
+    console.log(`📊 Extração concluída: ${result.length} registros extraídos`);
+    return result;
   }
 
   private async fetchFearGreedData(): Promise<FearGreedData[]> {
-    console.log('Buscando Fear & Greed Index...');
+    console.log('📡 Fazendo requisição para API Fear & Greed...');
+    const apiStart = Date.now();
 
     try {
       const response: AxiosResponse<FearGreedApiResponse> =
@@ -185,9 +179,17 @@ export class PuppeteerService {
           ),
         );
 
-      return this.processFearGreedJson(response.data);
+      const apiTime = Date.now() - apiStart;
+      console.log(`✅ API Fear & Greed respondeu em ${apiTime}ms`);
+      console.log(`📊 Recebidos ${response.data.data.length} registros da API`);
+
+      const processedData = this.processFearGreedJson(response.data);
+      console.log(`✅ Processados ${processedData.length} registros válidos`);
+
+      return processedData;
     } catch (error) {
-      console.error('Erro ao buscar Fear & Greed:', error);
+      const apiTime = Date.now() - apiStart;
+      console.error(`❌ Erro na API Fear & Greed após ${apiTime}ms:`, error);
       throw new Error('Falha ao obter dados do Fear & Greed Index');
     }
   }
@@ -225,39 +227,58 @@ export class PuppeteerService {
     bitcoinData: BitcoinDataWithMayer[],
     fearGreedData: FearGreedData[],
   ): BitcoinDataWithIndicators[] {
+    console.log('🗺️ Criando mapa de dados Fear & Greed...');
     const fearGreedMap = new Map(fearGreedData.map((fg) => [fg.date, fg]));
+    console.log(`✅ Mapa criado com ${fearGreedMap.size} entradas`);
 
-    return bitcoinData.map((bitcoin) => {
+    console.log('🔗 Combinando dados Bitcoin com Fear & Greed...');
+    let matchedCount = 0;
+
+    const result = bitcoinData.map((bitcoin) => {
       const fearGreed = fearGreedMap.get(bitcoin.date);
+      if (fearGreed) matchedCount++;
+
       return {
         ...bitcoin,
         fearGreedValue: fearGreed?.value,
         fearGreedClassification: fearGreed?.classification,
       };
     });
+
+    console.log(`✅ Combinação concluída: ${matchedCount} registros com Fear & Greed de ${bitcoinData.length} total`);
+    return result;
   }
 
   private calculateMayerMultiple(data: BitcoinData[]): BitcoinDataWithMayer[] {
+    console.log('📈 Ordenando dados por data...');
     const sortedData = [...data].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
+    console.log(`✅ ${sortedData.length} registros ordenados`);
 
-    return sortedData.map((item, index) => {
-      const result: BitcoinDataWithMayer = { ...item };
+    console.log('🧮 Calculando médias móveis de 200 dias...');
+    let calculatedCount = 0;
+
+    const result = sortedData.map((item, index) => {
+      const resultItem: BitcoinDataWithMayer = { ...item };
 
       if (index >= 199) {
         const last200Days = sortedData.slice(index - 199, index + 1);
         const movingAverage = this.calculateMovingAverage(last200Days);
         const closePrice = this.parsePrice(item.close);
 
-        result.movingAverage200 = movingAverage;
+        resultItem.movingAverage200 = movingAverage;
         if (closePrice && movingAverage) {
-          result.mayerMultiple = closePrice / movingAverage;
+          resultItem.mayerMultiple = closePrice / movingAverage;
+          calculatedCount++;
         }
       }
 
-      return result;
+      return resultItem;
     });
+
+    console.log(`✅ Mayer Multiple calculado para ${calculatedCount} registros`);
+    return result;
   }
 
   private calculateMovingAverage(data: BitcoinData[]): number | undefined {
