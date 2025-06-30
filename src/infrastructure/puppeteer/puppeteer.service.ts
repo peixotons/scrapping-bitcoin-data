@@ -39,12 +39,22 @@ interface BitcoinDataWithMayer extends BitcoinData {
 
 @Injectable()
 export class PuppeteerService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) { }
 
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
     const browser = await puppeteer.launch({
-      headless: false,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true, // SEMPRE true em produção
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process', // Para ambientes com pouca memória
+        '--disable-gpu'
+      ],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     });
 
     try {
