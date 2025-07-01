@@ -48,6 +48,26 @@ export class PuppeteerService {
     private readonly dynamoDbService: DynamoDbService,
   ) { }
 
+  /**
+   * Gera a URL do Yahoo Finance com períodos dinâmicos
+   * period1: 1º de janeiro de 2018 (data inicial fixa para ter histórico suficiente)
+   * period2: Data atual (sempre atualizada)
+   */
+  private generateYahooFinanceUrl(): string {
+    // Data inicial fixa: 1º de janeiro de 2018
+    const startDate = new Date('2018-01-01');
+    const period1 = Math.floor(startDate.getTime() / 1000);
+
+    // Data final: hoje (sempre atualizada)
+    const endDate = new Date();
+    const period2 = Math.floor(endDate.getTime() / 1000);
+
+    console.log(`📅 Período: ${startDate.toLocaleDateString()} até ${endDate.toLocaleDateString()}`);
+    console.log(`🔢 Timestamps: period1=${period1}, period2=${period2}`);
+
+    return `https://finance.yahoo.com/quote/BTC-USD/history/?guce_referrer=aHR0cHM6Ly9jaGF0Z3B0LmNvbS8&guce_referrer_sig=AQAAAGC1TQxq2tHtAaEFZelG6GyHbXkLr5o71-Ufy2nkU4z3SCZDAjI6THEwud8rlVm3Q-w-xLk0C_R_kG5yLhp0gXpypvMI8ORpvc_Qk8ju3xajj327Vz9wUMHI9Z2DSdEye9TunuCOCk2S2wpMc3j6J11IP8VRLqMCVCwFQEwfRdy2&period1=${period1}&period2=${period2}`;
+  }
+
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
     const startTime = Date.now();
     console.log('🚀 Iniciando captura de dados do Bitcoin...');
@@ -76,8 +96,9 @@ export class PuppeteerService {
 
       console.log('🌐 Navegando para Yahoo Finance...');
       const navigationStart = Date.now();
+      const yahooUrl = this.generateYahooFinanceUrl();
       await page.goto(
-        'https://finance.yahoo.com/quote/BTC-USD/history/?guce_referrer=aHR0cHM6Ly9jaGF0Z3B0LmNvbS8&guce_referrer_sig=AQAAAGC1TQxq2tHtAaEFZelG6GyHbXkLr5o71-Ufy2nkU4z3SCZDAjI6THEwud8rlVm3Q-w-xLk0C_R_kG5yLhp0gXpypvMI8ORpvc_Qk8ju3xajj327Vz9wUMHI9Z2DSdEye9TunuCOCk2S2wpMc3j6J11IP8VRLqMCVCwFQEwfRdy2&period1=1514764800&period2=1751289979',
+        yahooUrl,
         { waitUntil: 'domcontentloaded', timeout: 60000 } // Aumentado para t2.micro
       );
       const navigationTime = Date.now() - navigationStart;
