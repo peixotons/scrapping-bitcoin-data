@@ -3,6 +3,7 @@ import puppeteer from 'puppeteer';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import { DynamoDbService } from '../aws/dynamodb.service';
 
 interface BitcoinData {
   date: string;
@@ -42,7 +43,10 @@ export class PuppeteerService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutos
 
-  constructor(private readonly httpService: HttpService) { }
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly dynamoDbService: DynamoDbService,
+  ) { }
 
   async scrapeBitcoinData(): Promise<BitcoinDataWithIndicators[]> {
     const startTime = Date.now();
@@ -82,7 +86,7 @@ export class PuppeteerService {
       console.log('🔍 Procurando tabela de dados históricos...');
       const selectorStart = Date.now();
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
-        timeout: 120000, 
+        timeout: 120000,
       });
       const selectorTime = Date.now() - selectorStart;
       console.log(`✅ Tabela encontrada em ${selectorTime}ms`);
@@ -112,9 +116,25 @@ export class PuppeteerService {
 
       this.logResults(filteredData);
 
-      // Salvar no cache
+      // Salvar no cache local
       this.cache.set(cacheKey, { data: filteredData, timestamp: Date.now() });
-      console.log('💾 Dados salvos no cache');
+      console.log('💾 Dados salvos no cache local');
+
+      // Salvar no DynamoDB v3
+      try {
+        console.log('☁️ Salvando dados no DynamoDB v3...');
+        const metadata = {
+          recordsCount: filteredData.length,
+          dataRange: `${filteredData[0]?.date} to ${filteredData[filteredData.length - 1]?.date}`,
+          processingTimeMs: Date.now() - startTime,
+        };
+
+        const dynamoId = await this.dynamoDbService.saveBitcoinData(filteredData, metadata);
+        console.log(`✅ Dados salvos no DynamoDB v3 com ID: ${dynamoId}`);
+      } catch (dynamoError) {
+        console.error('⚠️ Erro ao salvar no DynamoDB v3 (continuando sem erro):', dynamoError.message);
+        // Não falhar a operação se DynamoDB estiver indisponível
+      }
 
       const totalTime = Date.now() - startTime;
       console.log(`🎉 Processo completo em ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
