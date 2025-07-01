@@ -6,7 +6,7 @@ import { GetBitcoinDataUseCase } from 'src/application/use-case/get-bitcoin-data
 export class GetBitcoinDataJob {
   constructor(private readonly getBitcoinDataUseCase: GetBitcoinDataUseCase) {}
 
-  @Cron(CronExpression.EVERY_10_HOURS)
+  @Cron(CronExpression.EVERY_YEAR)
   async handleCron() {
     try {
       const data = await this.getBitcoinDataUseCase.execute();
