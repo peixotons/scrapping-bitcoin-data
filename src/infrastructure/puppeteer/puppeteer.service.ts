@@ -82,7 +82,7 @@ export class PuppeteerService {
       console.log('🔍 Procurando tabela de dados históricos...');
       const selectorStart = Date.now();
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
-        timeout: 45000, // Aumentado para t2.micro
+        timeout: 120000, 
       });
       const selectorTime = Date.now() - selectorStart;
       console.log(`✅ Tabela encontrada em ${selectorTime}ms`);
