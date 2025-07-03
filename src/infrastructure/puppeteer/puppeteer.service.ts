@@ -103,9 +103,9 @@ export class PuppeteerService {
       );
       const navigationTime = Date.now() - navigationStart;
       console.log(`✅ Página carregada em ${navigationTime}ms`);
-
-      console.log('🔍 Procurando tabela de dados históricos...');
+      console.log('📂 Working dir:', process.cwd());
       await page.screenshot({ path: 'erro.png', fullPage: true });
+      console.log('🔍 Procurando tabela de dados históricos...');
 
       const selectorStart = Date.now();
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
