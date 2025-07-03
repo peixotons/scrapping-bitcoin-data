@@ -99,12 +99,17 @@ export class PuppeteerService {
       const yahooUrl = this.generateYahooFinanceUrl();
       await page.goto(
         yahooUrl,
-        { waitUntil: 'domcontentloaded', timeout: 60000 } // Aumentado para t2.micro
+        { waitUntil: 'domcontentloaded', timeout: 60000 } 
       );
       const navigationTime = Date.now() - navigationStart;
-      console.log(`✅ Página carregada em ${navigationTime}ms`);
-      console.log('📂 Working dir:', process.cwd());
-      await page.screenshot({ path: 'erro.png', fullPage: true });
+      try {
+        await page.screenshot({ path: 'enro.png', fullPage: true });
+        console.log(`✅ Página carregada em ${navigationTime}ms`);
+        console.log('✅ Screenshot criada em', process.cwd() + '/error.png');
+      } catch (err) {
+        console.error('❌ Falha ao salvar screenshot:', err);
+      }
+    
       console.log('🔍 Procurando tabela de dados históricos...');
 
       const selectorStart = Date.now();
