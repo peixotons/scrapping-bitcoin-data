@@ -105,6 +105,8 @@ export class PuppeteerService {
       console.log(`✅ Página carregada em ${navigationTime}ms`);
 
       console.log('🔍 Procurando tabela de dados históricos...');
+      await page.screenshot({ path: '/home/ubuntu/meu-screenshot.png', fullPage: true });
+
       const selectorStart = Date.now();
       await page.waitForSelector('table.yf-1jecxey.noDl.hideOnPrint', {
         timeout: 120000,
