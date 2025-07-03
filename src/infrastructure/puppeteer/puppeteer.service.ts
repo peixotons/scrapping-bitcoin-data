@@ -4,6 +4,8 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { DynamoDbService } from '../aws/dynamodb.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface BitcoinData {
   date: string;
@@ -99,17 +101,51 @@ export class PuppeteerService {
       const yahooUrl = this.generateYahooFinanceUrl();
       await page.goto(
         yahooUrl,
-        { waitUntil: 'domcontentloaded', timeout: 60000 } 
+        { waitUntil: 'domcontentloaded', timeout: 60000 }
       );
       const navigationTime = Date.now() - navigationStart;
+
+      // Screenshot melhorado com verificação de diretório
       try {
-        await page.screenshot({ path: 'enro.png', fullPage: true });
+        // Criar diretório screenshots se não existir
+        const screenshotDir = path.join(process.cwd(), 'screenshots');
+        if (!fs.existsSync(screenshotDir)) {
+          fs.mkdirSync(screenshotDir, { recursive: true });
+          console.log('📁 Diretório screenshots criado');
+        }
+
+        // Nome do arquivo com timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const screenshotPath = path.join(screenshotDir, `yahoo-finance-${timestamp}.png`) as `${string}.png`;
+
+        await page.screenshot({
+          path: screenshotPath,
+          fullPage: true,
+          quality: 80 // Reduz tamanho do arquivo
+        });
+
         console.log(`✅ Página carregada em ${navigationTime}ms`);
-        console.log('✅ Screenshot criada em', process.cwd() + '/error.png');
-      } catch (err) {
-        console.error('❌ Falha ao salvar screenshot:', err);
+        console.log(`📸 Screenshot salvo em: ${screenshotPath}`);
+
+        // Verificar se o arquivo foi realmente criado
+        if (fs.existsSync(screenshotPath)) {
+          const stats = fs.statSync(screenshotPath);
+          console.log(`✅ Screenshot confirmado: ${(stats.size / 1024).toFixed(1)}KB`);
+        }
+      } catch (screenshotError) {
+        console.error('❌ Falha ao salvar screenshot:', screenshotError.message);
+        console.log(`📂 Diretório atual: ${process.cwd()}`);
+        console.log(`👤 Usuário atual: ${process.env.USER || 'não definido'}`);
+
+        // Tentar screenshot em memória como fallback
+        try {
+          const screenshotBuffer = await page.screenshot({ fullPage: true });
+          console.log(`📸 Screenshot capturado em buffer: ${(screenshotBuffer.length / 1024).toFixed(1)}KB`);
+        } catch (bufferError) {
+          console.error('❌ Falha também no screenshot em buffer:', bufferError.message);
+        }
       }
-    
+
       console.log('🔍 Procurando tabela de dados históricos...');
 
       const selectorStart = Date.now();
