@@ -120,8 +120,7 @@ export class PuppeteerService {
 
         await page.screenshot({
           path: screenshotPath,
-          fullPage: true,
-          quality: 80 // Reduz tamanho do arquivo
+          fullPage: true
         });
 
         console.log(`✅ Página carregada em ${navigationTime}ms`);
